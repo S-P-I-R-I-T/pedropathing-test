@@ -12,8 +12,8 @@ import org.firstinspires.ftc.teamcode.PRL.Class.PoseHolder;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@TeleOp(name = "MainTeleopBlue")
-public class MainTeleopBlue extends LinearOpMode {
+@TeleOp
+public class BLUETeleop extends LinearOpMode {
 
     LimelightClass limelight;
     ActionManaging action;
