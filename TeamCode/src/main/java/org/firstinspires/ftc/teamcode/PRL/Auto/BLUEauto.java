@@ -55,7 +55,7 @@ public class BLUEauto extends OpMode {
         limelight = new LimelightClass(hardwareMap);
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(56.000, 8.700, Math.toRadians(90)));
 
         paths = new Paths(follower); // Build paths
 
@@ -170,6 +170,7 @@ public class BLUEauto extends OpMode {
     }
 
     public static class Paths {
+        public PathChain BLUE0;
         public PathChain BLUE1;
         public PathChain BLUE2;
         public PathChain BLUE3;
@@ -177,10 +178,20 @@ public class BLUEauto extends OpMode {
         public PathChain[] BLUE;
 
         public Paths(Follower follower) {
+            BLUE0 = follower.pathBuilder()
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(56.000, 8.700),
+                                    new Pose(56.000, 15.300)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
+                    .build();
+
             BLUE1 = follower.pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(55.000, 15.300),
+                                    new Pose(56.000, 15.300),
                                     new Pose(65.000, 31.000),
                                     new Pose(22.000, 35.000)
                             )
@@ -201,7 +212,7 @@ public class BLUEauto extends OpMode {
             BLUE3 = follower.pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(55.000, 15.300),
+                                    new Pose(56.000, 15.300),
                                     new Pose(56.000, 59.000),
                                     new Pose(22.000, 59.000)
                             )
@@ -219,7 +230,7 @@ public class BLUEauto extends OpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(120))
                     .build();
 
-            BLUE = new PathChain[]{BLUE1, BLUE2, BLUE3, BLUE4};
+            BLUE = new PathChain[]{BLUE0, BLUE1, BLUE2, BLUE3, BLUE4};
         }
     }
 }

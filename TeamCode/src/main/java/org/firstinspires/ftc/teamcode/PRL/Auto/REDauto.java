@@ -57,7 +57,7 @@ public class REDauto extends OpMode {
         limelight = new LimelightClass(hardwareMap);
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(86.500, 8.700, Math.toRadians(90)));
 
         paths = new Paths(follower); // Build paths
 
@@ -172,6 +172,7 @@ public class REDauto extends OpMode {
     }
 
     public static class Paths {
+        public PathChain RED0;
         public PathChain RED1;
         public PathChain RED2;
         public PathChain RED3;
@@ -179,6 +180,16 @@ public class REDauto extends OpMode {
         public PathChain[] RED;
 
         public Paths(Follower follower) {
+            RED0 = follower.pathBuilder()
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(86.500, 8.700),
+                                    new Pose(86.500, 15.300)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
+                    .build();
+
             RED1 = follower.pathBuilder()
                     .addPath(
                             new BezierCurve(
@@ -221,7 +232,7 @@ public class REDauto extends OpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(60))
                     .build();
 
-            RED = new PathChain[]{RED1, RED2, RED3, RED4};
+            RED = new PathChain[]{RED0, RED1, RED2, RED3, RED4};
         }
     }
 }
