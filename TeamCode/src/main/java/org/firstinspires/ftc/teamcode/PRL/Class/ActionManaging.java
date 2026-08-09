@@ -15,7 +15,8 @@ public class ActionManaging {
     Servo Stopper, Turret_H;
     HardwareMap hw;
 
-    public static double Intake_Power = 1;
+    public static double Intake_Power = -0.7;
+    public static double Intake_Power_OUTTAKE = -1;
     public static double IntakeR_Power = 1;
 
     public static double Stopper_Open_Pos = 1;
@@ -25,11 +26,9 @@ public class ActionManaging {
     public static double Shooting_Near_Velocity = 1000;
 
     public static double Preheat_Velocity = 800;
+    public static double Outtake_Reverse_Velocity = -800;
     public static double Turret_S_f = 17;
     public static double Turret_S_p = 200;
-
-    public static double Turret_MaxPower = 0.6;
-
 
     public static double Hood_Far = 0.6;
     public static double Hood_Near = 0.5;
@@ -60,8 +59,12 @@ public class ActionManaging {
         Turret_S.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
     }
 
-    public void Intake_On(){
-        Intake.setPower(Intake_Power);
+    public void Intake_On(double mode){
+        if (mode == 1) {
+            Intake.setPower(Intake_Power);
+        } else if (mode ==2) {
+            Intake.setPower(Intake_Power_OUTTAKE);
+        }
     }
     public void Intake_R(){
         Intake.setPower(IntakeR_Power);
@@ -92,6 +95,10 @@ public class ActionManaging {
         Turret_S.setVelocity(Preheat_Velocity);
     }
 
+    public void Outtake_Reverse(){
+        Turret_S.setVelocity(Outtake_Reverse_Velocity);
+    }
+
     public double Outtake_Velocity(){
         return Turret_S.getVelocity();
     }
@@ -105,15 +112,7 @@ public class ActionManaging {
     }
 
     public void Turret_SetPower(double power){
-        power = Math.max(-Turret_MaxPower, Math.min(Turret_MaxPower, power));
         Turret_R.setPower(power);
     }
 
-    public void Turret_Stop(){
-        Turret_R.setPower(0);
-    }
-
-    public void Turret_Lock(){
-        Turret_R.setPower(0);
-    }
 }

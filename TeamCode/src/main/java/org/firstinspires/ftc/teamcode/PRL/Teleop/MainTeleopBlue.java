@@ -7,11 +7,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
-import org.firstinspires.ftc.teamcode.PRL.Class.DriveClass;
 import org.firstinspires.ftc.teamcode.PRL.Class.LimelightClass;
 import org.firstinspires.ftc.teamcode.PRL.Class.PoseHolder;
-import org.firstinspires.ftc.teamcode.PRL.Class.TargetTracking;
-import org.firstinspires.ftc.teamcode.PRL.Class.TurretClass;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
@@ -20,28 +17,27 @@ public class MainTeleopBlue extends LinearOpMode {
 
     LimelightClass limelight;
     ActionManaging action;
-    TurretClass turret;
-    TargetTracking tracking;
-    DriveClass drive;
     Follower follower;
 
     public static final int BLUE_TAG_ID = 20;
 
-    public static final boolean UseTurretClass = true;
 
     public static final double START_X = 0;
     public static final double START_Y = 0;
     public static final double START_HEADING = 0;
 
-    public static final double GOAL_X = 11;
-    public static final double GOAL_Y = 135;
+    boolean Is_Tracking = true;
 
+    public static double kP = 0.02;
+    public static double kD = 0.003;
+    double lastError = 0;
+
+    boolean lastRightStickButton = false;
     @Override
     public void runOpMode() {
 
         limelight = new LimelightClass(hardwareMap);
         action = new ActionManaging(hardwareMap);
-        drive = new DriveClass(hardwareMap);
 
         follower = Constants.createFollower(hardwareMap);
         if (PoseHolder.endPose != null) {
@@ -50,35 +46,22 @@ public class MainTeleopBlue extends LinearOpMode {
             follower.setStartingPose(new Pose(START_X, START_Y, START_HEADING));
         }
 
-        if (UseTurretClass) {
-            turret = new TurretClass(hardwareMap, limelight);
-            turret.setGoal(GOAL_X, GOAL_Y);
-        } else {
-            tracking = new TargetTracking(limelight, action);
-        }
-
-        drive.init();
 
         limelight.setTargetTagID(BLUE_TAG_ID);
         limelight.start();
 
         waitForStart();
 
-        action.Outtake_Off();
-
         while(opModeIsActive()){
-            drive.drive(gamepad1);
             follower.update();
 
             telemetry.addData("Pose", "%.1f, %.1f, %.1f",
                     follower.getPose().getX(), follower.getPose().getY(),
                     Math.toDegrees(follower.getPose().getHeading()));
 
-            if (UseTurretClass) {
-                turret.update(follower.getPose());
-            } else {
-                tracking.update(telemetry, gamepad2.right_bumper || gamepad2.left_bumper);
-            }
+            telemetry.addData("Velocity",action.Outtake_Velocity());
+
+            LLtracking();
 
             Intake();
             Outtake();
@@ -90,13 +73,21 @@ public class MainTeleopBlue extends LinearOpMode {
     }
 
     void Intake(){
-        if (gamepad2.a) {
-            action.Intake_On();
-            action.Stopper_On();
-        } else if (gamepad2.b) {
-            action.Intake_R();
-            action.Stopper_On();
+        if (gamepad1.a) {
+
+            if (gamepad2.right_bumper || gamepad2.left_bumper) {
+
+                // Outtake와 동시에 사용 → 풀파워
+                action.Intake_On(1);
+
+            } else {
+
+                // 일반 Intake → 느린 속도
+                action.Intake_On(2);
+            }
+
         } else {
+
             action.Intake_Off();
         }
     }
@@ -104,20 +95,51 @@ public class MainTeleopBlue extends LinearOpMode {
     void Outtake(){
         if (gamepad2.right_bumper){
             action.Outtake_On(1);
-            if (action.Outtake_Velocity() > ActionManaging.Shooting_Far_Velocity){
-                action.Intake_On();
-            } else {
-                action.Intake_Off();
-            }
         } else if (gamepad2.left_bumper){
             action.Outtake_On(2);
-            if (action.Outtake_Velocity() > ActionManaging.Shooting_Near_Velocity){
-                action.Intake_On();
-            } else {
-                action.Intake_Off();
-            }
         } else {
             action.Outtake_Off();
         }
+    }
+
+    void LLtracking() {
+
+        limelight.update();
+
+        if (gamepad2.right_stick_button && !lastRightStickButton) {
+            Is_Tracking = !Is_Tracking;
+        }
+
+        // D-pad 수동 조작 최우선
+        if (gamepad2.dpad_left) {
+
+            action.Turret_SetPower(0.3);
+
+        } else if (gamepad2.dpad_right) {
+
+            action.Turret_SetPower(-0.3);
+
+        } else if (limelight.hasTarget() && Is_Tracking) {
+
+            double error = limelight.getTx();
+
+            double derivative = error - lastError;
+            lastError = error;
+
+            double power = kP * error + kD * derivative;
+
+            power = Math.max(-0.6, Math.min(0.6, power));
+
+            action.Turret_SetPower(power);
+
+            telemetry.addData("tx", error);
+            telemetry.addData("Power", power);
+
+        } else {
+
+            action.Turret_SetPower(0);
+            telemetry.addLine("No Target");
+        }
+
     }
 }
