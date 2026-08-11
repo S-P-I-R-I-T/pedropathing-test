@@ -33,8 +33,8 @@ public class REDauto extends OpMode {
     private static final int S_DRIVE = 3;      // Follow next path with intake on
     private static final int S_DONE = 4;       // Finished
 
-    private int phase = S_ALIGN;
-    private int pathIndex = -1; // -1 = first shoot, then 0..3 for RED1..RED4
+    private int phase = S_DRIVE;
+    private int pathIndex = 0; // 0..4 for RED0..RED4
 
     public static final int RED_TAG_ID = 24; // TODO: 레드 얼라이언스 태그 ID로 변경
     public static final int SHOOT_ZONE = 1;  // 1 = far, 2 = near
@@ -60,6 +60,8 @@ public class REDauto extends OpMode {
         follower.setStartingPose(new Pose(86.500, 8.700, Math.toRadians(90)));
 
         paths = new Paths(follower); // Build paths
+
+        follower.followPath(paths.RED[0], true); // RED0부터 주행 후 발사
 
         limelight.setTargetTagID(RED_TAG_ID);
         limelight.start();

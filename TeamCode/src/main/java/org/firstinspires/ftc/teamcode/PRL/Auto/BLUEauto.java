@@ -33,8 +33,8 @@ public class BLUEauto extends OpMode {
     private static final int S_DRIVE = 3;      // Follow next path with intake on
     private static final int S_DONE = 4;       // Finished
 
-    private int phase = S_ALIGN;
-    private int pathIndex = -1; // -1 = first shoot, then 0..3 for BLUE1..BLUE4
+    private int phase = S_DRIVE;
+    private int pathIndex = 0; // 0..4 for BLUE0..BLUE4
 
     public static final int BLUE_TAG_ID = 20; // TODO: 블루 얼라이언스 태그 ID로 변경
     public static final int SHOOT_ZONE = 1;  // 1 = far, 2 = near
@@ -58,6 +58,8 @@ public class BLUEauto extends OpMode {
         follower.setStartingPose(new Pose(56.000, 8.700, Math.toRadians(90)));
 
         paths = new Paths(follower); // Build paths
+
+        follower.followPath(paths.BLUE[0], true); // BLUE0부터 주행 후 발사
 
         limelight.setTargetTagID(BLUE_TAG_ID);
         limelight.start();

@@ -18,7 +18,7 @@ public class BLUETeleop extends LinearOpMode {
     LimelightClass limelight;
     ActionManaging action;
     Follower follower;
-
+    public static boolean centric = false;
     public static final int BLUE_TAG_ID = 20;
 
 
@@ -51,13 +51,15 @@ public class BLUETeleop extends LinearOpMode {
         limelight.start();
 
         waitForStart();
+        follower.startTeleopDrive();
 
         while(opModeIsActive()){
             follower.update();
-
-            telemetry.addData("Pose", "%.1f, %.1f, %.1f",
-                    follower.getPose().getX(), follower.getPose().getY(),
-                    Math.toDegrees(follower.getPose().getHeading()));
+            follower.setTeleOpDrive(
+                    gamepad1.left_stick_y,
+                    gamepad1.left_stick_x,
+                    gamepad1.right_stick_x,
+                    centric);
 
             telemetry.addData("Velocity",action.Outtake_Velocity());
 
@@ -97,8 +99,14 @@ public class BLUETeleop extends LinearOpMode {
             action.Outtake_On(1);
         } else if (gamepad2.left_bumper){
             action.Outtake_On(2);
-        } else {
+        }
+
+        if (gamepad2.dpad_down){
             action.Outtake_Off();
+        }
+
+        if (gamepad2.left_trigger_pressed){
+            action.Outtake_Reverse();
         }
     }
 
