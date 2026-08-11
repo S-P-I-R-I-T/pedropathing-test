@@ -21,25 +21,17 @@ import com.pedropathing.geometry.Pose;
 public class NearBlue extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
-    private int pathState; // Current autonomous path state (state machine)
     private Paths paths; // Paths defined in the Paths class
     private ActionManaging action;
     private ElapsedTime timer = new ElapsedTime();
 
-    // State machine phases
-    private static final int S_DRIVE = 0;      // 인테이크 켜고 이동
-    private static final int S_ALIGN = 1;      // 아웃테이크 스핀업 (near zone)
-    private static final int S_FEED = 2;       // 인테이크 휠 세게 돌려 발사
-    private static final int S_WIND_DOWN = 3;  // 발사 모터 감속 확인 후 이동
-    private static final int S_DONE = 4;       // 종료
-
     public static final int SHOOT_ZONE = 2;           // 1 = far, 2 = near
     public static final double SHOOT_VELOCITY_PERCENT = 0.8; // 발사 속도의 80% 도달 시 발사
-    public static final double FEED_TIME = 3.0;        // seconds of intake feed per shot
+    public static final double FEED_TIME = 3.0;       // seconds of intake feed per shot
     public static final double WIND_DOWN_TIMEOUT = 2.0; // seconds fallback
 
-    private int phase = S_DRIVE;
     private int pathIndex = 0; // 0: goshoot, 1: intake, 2: goshoot2, 3: intake2, 4: goshoot3
+    private boolean feeding = false; // 발사(인테이크 피드) 중인지
 
     @Override
     public void init() {
@@ -48,7 +40,7 @@ public class NearBlue extends OpMode {
         action = new ActionManaging(hardwareMap);
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(21, 123, Math.toRadians(140)));
 
         paths = new Paths(follower); // Build paths
 
@@ -61,10 +53,9 @@ public class NearBlue extends OpMode {
     @Override
     public void loop() {
         follower.update(); // Update Pedro Pathing
-        pathState = autonomousPathUpdate(); // Update autonomous state machine
+        autonomousPathUpdate();
 
         // Log values to Panels and Driver Station
-        panelsTelemetry.debug("Path State", pathState);
         panelsTelemetry.debug("Path Index", pathIndex);
         panelsTelemetry.debug("X", follower.getPose().getX());
         panelsTelemetry.debug("Y", follower.getPose().getY());
@@ -73,69 +64,67 @@ public class NearBlue extends OpMode {
         panelsTelemetry.update(telemetry);
     }
 
-    public int autonomousPathUpdate() {
-        switch (phase) {
-            case S_DRIVE:
-                // 이동 중 인테이크 수집 + 아웃테이크 리버스 유지
+    private void autonomousPathUpdate() {
+        if (follower.isBusy()) {
+            // 이동 중: 아웃테이크는 죽이고, 인테이크 경로일 때만 인테이크2 돌리면서 이동
+            action.Outtake_Reverse();
+            if (isIntakePath()) {
                 action.Intake_On(2);
-                action.Outtake_Reverse();
-                if (!follower.isBusy()) {
-                    // 도착하면 인테이크 끄고 다음 발사 준비
-                    action.Intake_Off();
-                    phase = S_ALIGN;
-                }
-                break;
-            case S_ALIGN:
-                // 아웃테이크 스핀업, velocity가 충분히 올라오면 발사
-                action.Outtake_On(SHOOT_ZONE);
-                if (action.Outtake_Velocity() >= targetVelocity() * SHOOT_VELOCITY_PERCENT) {
-                    phase = S_FEED;
-                    timer.reset();
-                }
-                break;
-            case S_FEED:
-                // 인테이크 휠 세게 돌려 발사
-                action.Intake_On(2);
-                if (timer.seconds() >= FEED_TIME) {
-                    action.Intake_Off();
-                    phase = S_WIND_DOWN;
-                    timer.reset();
-                }
-                break;
-            case S_WIND_DOWN:
-                // 발사 모터가 거의 회전하지 않을 때까지 리버스
-                action.Outtake_Reverse();
-                if (action.Outtake_Velocity() <= 0 || timer.seconds() >= WIND_DOWN_TIMEOUT) {
-                    pathIndex++;
-                    if (pathIndex < paths.allPaths.length) {
-                        // 인테이크 켜고 다음 path로
-                        action.Intake_On(2);
-                        followNextPath();
-                        phase = S_DRIVE;
-                    } else {
-                        phase = S_DONE;
-                    }
-                }
-                break;
-            case S_DONE:
-            default:
-                break;
+            } else {
+                action.Intake_Off();
+            }
+            return;
         }
-        return phase;
-    }
 
-    private void followNextPath() {
-        if (pathIndex == 0) {
-            follower.followPath(paths.allPaths[0], true);
-        } else {
+        if (isShootPath()) {
+            shoot(); // 도착하면 스핀업 후 인테이크1로 발사
+        } else if (pathIndex < paths.allPaths.length - 1) {
+            // 인테이크 위치 도착: 인테이크 끄고 다음 발사 위치로
+            action.Intake_Off();
+            pathIndex++;
             follower.followPath(paths.allPaths[pathIndex]);
         }
+    }
+
+    private void shoot() {
+        if (!feeding) {
+            // 아웃테이크 스핀업
+            action.Intake_Off();
+            action.Outtake_On(SHOOT_ZONE);
+            if (action.Outtake_Velocity() >= targetVelocity() * SHOOT_VELOCITY_PERCENT) {
+                // 벨로시티 충분히 올라오면 인테이크1로 3초 발사
+                feeding = true;
+                timer.reset();
+                action.Intake_On(1);
+            }
+            return;
+        }
+
+        if (timer.seconds() >= FEED_TIME) {
+            action.Intake_Off();
+            action.Outtake_Reverse();
+            // 감속 확인 후 다음 경로로
+            if (action.Outtake_Velocity() <= 0 || timer.seconds() >= FEED_TIME + WIND_DOWN_TIMEOUT) {
+                feeding = false;
+                pathIndex++;
+                if (pathIndex < paths.allPaths.length) {
+                    follower.followPath(paths.allPaths[pathIndex]);
+                }
+            }
+        }
+    }
+
+    private boolean isShootPath() {
+        return pathIndex % 2 == 0; // 0, 2, 4 = goshoot 계열
+    }
+
+    private boolean isIntakePath() {
+        return pathIndex % 2 == 1; // 1, 3 = intake 계열
     }
 
     private double targetVelocity() {
         return SHOOT_ZONE == 1 ? ActionManaging.Shooting_Far_Velocity : ActionManaging.Shooting_Near_Velocity;
     }
-
 
     public static class Paths {
         public PathChain goshoot;

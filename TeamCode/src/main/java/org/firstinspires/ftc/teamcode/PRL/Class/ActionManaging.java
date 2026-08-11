@@ -22,13 +22,13 @@ public class ActionManaging {
     public static double Stopper_Open_Pos = 1;
     public static double Stopper_Close_Pos = 0.5;
 
-    public static double Shooting_Far_Velocity = 2000;
+    public static double Shooting_Far_Velocity = 2200;
     public static double Shooting_Near_Velocity = 1000;
 
     public static double Preheat_Velocity = 100;
     public static double Outtake_Reverse_Velocity = -100;
-    public static double Turret_S_f = 17;
-    public static double Turret_S_p = 50;
+    public static double Turret_S_f = 20;
+    public static double Turret_S_p = 200;
 
     public static double Hood_Far = 0.7;
     public static double Hood_Near = 0.3;
