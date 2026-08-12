@@ -14,8 +14,8 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous
-public class TestAuto extends OpMode {
+@Autonomous(name = "BlueAuto")
+public class BlueAuto extends OpMode {
     TelemetryManager panelsTelemetry;
     Follower follower;
     Timer pathtimer , opModeTimer;
@@ -32,12 +32,19 @@ public class TestAuto extends OpMode {
     private final Pose startPose = new Pose(20,120,Math.toRadians(144));
     private final Pose shootPose = new Pose(41,99,Math.toRadians(144));
 
-    private PathChain driveStartPosShootPos;
+    private final Pose GPPPose = new Pose(19,82.5,Math.toRadians(180));
+
+    private PathChain driveStartPosShootPos, driveShootPosIntakeGPP;
 
     public void buildPaths(){
         driveStartPosShootPos = follower.pathBuilder()
                 .addPath(new BezierLine(startPose,shootPose))
                 .setLinearHeadingInterpolation(startPose.getHeading(),shootPose.getHeading())
+                .build();
+
+        driveShootPosIntakeGPP = follower.pathBuilder()
+                .addPath(new BezierCurve(shootPose,new Pose(59,81),GPPPose))
+                .setLinearHeadingInterpolation(shootPose.getHeading(), GPPPose.getHeading())
                 .build();
     }
 
@@ -45,9 +52,37 @@ public class TestAuto extends OpMode {
         switch (pathState){
             case DRIVE_STARTPOS_SHOOTPOS:
                 follower.followPath(driveStartPosShootPos, true);
+                setPathState(PathState.SHOOT_PRELOAD);
                 break;
+            case SHOOT_PRELOAD:
+                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1){
+                    action.Outtake_On(2);
+                }
+                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3){
+                    action.Intake_On(2);
+                }
+                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 5){
+                    action.Intake_Off();
+                    action.Outtake_Off();
+                    panelsTelemetry.debug("Status", "Done Path1");
+
+                    follower.followPath(driveShootPosIntakeGPP, true);
+                    setPathState(PathState.DRIVE_SHOOTPOS_INTAKEGPP);
+                    break;
+                }
+
+                break;
+            case DRIVE_SHOOTPOS_INTAKEGPP:
+                action.Intake_On(1);
+                if (!follower.isBusy()){
+                    action.Intake_Off();
+                    panelsTelemetry.debug("Status", "Done Path2");
+                    break;
+                }
+
             default:
                 panelsTelemetry.debug("Status", "No State Command");
+
                 break;
         }
     }
@@ -68,6 +103,7 @@ public class TestAuto extends OpMode {
         follower = Constants.createFollower(hardwareMap);
 
         action = new ActionManaging(hardwareMap);
+
 
         buildPaths();
         follower.setStartingPose(startPose);

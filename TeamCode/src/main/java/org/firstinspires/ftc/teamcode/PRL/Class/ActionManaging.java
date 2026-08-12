@@ -25,7 +25,7 @@ public class ActionManaging {
     public static double Shooting_Far_Velocity = 2200;
     public static double Shooting_Near_Velocity = 1000;
 
-    public static double Preheat_Velocity = 100;
+    public static double Preheat_Velocity = -100;
     public static double Outtake_Reverse_Velocity = -100;
     public static double Turret_S_f = 20;
     public static double Turret_S_p = 200;
