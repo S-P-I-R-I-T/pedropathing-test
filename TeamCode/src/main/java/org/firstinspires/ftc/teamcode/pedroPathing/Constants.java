@@ -22,7 +22,7 @@ public class Constants {
             .translationalPIDFCoefficients(new PIDFCoefficients(0.1,0,0.005,0.03))
             .headingPIDFCoefficients(new PIDFCoefficients(1,0,0,0.01))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025,0,0.00001,0.55,0.02))
-            .centripetalScaling(0.00049)
+            .centripetalScaling(0.0005)
             ;
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
