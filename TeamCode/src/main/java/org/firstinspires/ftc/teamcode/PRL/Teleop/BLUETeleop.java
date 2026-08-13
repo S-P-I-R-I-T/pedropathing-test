@@ -24,9 +24,9 @@ public class BLUETeleop extends LinearOpMode {
     public static final int BLUE_TAG_ID = 20;
 
 
-    public static final double START_X = 0;
-    public static final double START_Y = 0;
-    public static final double START_HEADING = 0;
+    public static final double START_X = 20;
+    public static final double START_Y = 120;
+    public static final double START_HEADING = Math.toRadians(144);
 
     boolean Is_Tracking = true;
 
@@ -86,13 +86,13 @@ public class BLUETeleop extends LinearOpMode {
             if (gamepad2.right_bumper || gamepad2.left_bumper) {
 
                 // Outtake와 동시에 사용 → 풀파워
-                action.Intake_On(1);
+                action.Intake_On(2);
 
             } else {
 
                 // 일반 Intake → 느린 속도
                 action.Stopper_On();
-                action.Intake_On(2);
+                action.Intake_On(1);
             }
 
         } else {

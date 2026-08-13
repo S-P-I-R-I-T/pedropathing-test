@@ -23,7 +23,7 @@ public class ActionManaging {
     public static double Stopper_Close_Pos = 0.55;
 
     public static double Shooting_Far_Velocity = 2200;
-    public static double Shooting_Near_Velocity = 1000;
+    public static double Shooting_Near_Velocity = 1200;
 
     public static double Preheat_Velocity = 0;
     public static double Outtake_Reverse_Velocity = 0;

@@ -32,7 +32,7 @@ public class BlueAuto extends OpMode {
     private final Pose startPose = new Pose(20,120,Math.toRadians(144));
     private final Pose shootPose = new Pose(41,99,Math.toRadians(144));
 
-    private final Pose GPPPose = new Pose(19,82.5,Math.toRadians(180));
+    private final Pose GPPPose = new Pose(18,82.5,Math.toRadians(180));
 
     private PathChain driveStartPosShootPos, driveShootPosIntakeGPP;
 
@@ -56,6 +56,7 @@ public class BlueAuto extends OpMode {
                 break;
             case SHOOT_PRELOAD:
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1){
+                    action.Stopper_off();
                     action.Outtake_On(2);
                 }
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3){
@@ -66,6 +67,9 @@ public class BlueAuto extends OpMode {
                     action.Outtake_Off();
                     panelsTelemetry.debug("Status", "Done Path1");
 
+                    action.Stopper_On();
+
+                    action.Intake_On(1);
                     follower.followPath(driveShootPosIntakeGPP, true);
                     setPathState(PathState.DRIVE_SHOOTPOS_INTAKEGPP);
                     break;
@@ -73,7 +77,7 @@ public class BlueAuto extends OpMode {
 
                 break;
             case DRIVE_SHOOTPOS_INTAKEGPP:
-                action.Intake_On(1);
+
                 if (!follower.isBusy()){
                     action.Intake_Off();
                     panelsTelemetry.debug("Status", "Done Path2");
