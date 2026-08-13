@@ -20,13 +20,13 @@ public class ActionManaging {
     public static double IntakeR_Power = 1;
 
     public static double Stopper_Open_Pos = 1;
-    public static double Stopper_Close_Pos = 0.5;
+    public static double Stopper_Close_Pos = 0.55;
 
     public static double Shooting_Far_Velocity = 2200;
     public static double Shooting_Near_Velocity = 1000;
 
-    public static double Preheat_Velocity = -100;
-    public static double Outtake_Reverse_Velocity = -100;
+    public static double Preheat_Velocity = 0;
+    public static double Outtake_Reverse_Velocity = 0;
     public static double Turret_S_f = 20;
     public static double Turret_S_p = 200;
 
@@ -86,10 +86,8 @@ public class ActionManaging {
 
     public void Outtake_On(double zone){
         if (zone == 1) {
-            Hood_Set(Hood_Far);
             Turret_S.setVelocity(Shooting_Far_Velocity);
         } else if (zone == 2) {
-            Hood_Set(Hood_Near);
             Turret_S.setVelocity(Shooting_Near_Velocity);
         }
     }

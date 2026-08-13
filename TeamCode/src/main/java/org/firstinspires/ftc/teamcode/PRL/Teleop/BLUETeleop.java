@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
+import org.firstinspires.ftc.teamcode.PRL.Class.HoodControl;
 import org.firstinspires.ftc.teamcode.PRL.Class.LimelightClass;
 import org.firstinspires.ftc.teamcode.PRL.Class.PoseHolder;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -18,6 +19,7 @@ public class BLUETeleop extends LinearOpMode {
     LimelightClass limelight;
     ActionManaging action;
     Follower follower;
+    HoodControl hood;
     public static boolean centric = true;
     public static final int BLUE_TAG_ID = 20;
 
@@ -46,6 +48,8 @@ public class BLUETeleop extends LinearOpMode {
             follower.setStartingPose(new Pose(START_X, START_Y, START_HEADING));
         }
 
+        hood = new HoodControl(action,follower);
+
 
         limelight.setTargetTagID(BLUE_TAG_ID);
         limelight.start();
@@ -68,6 +72,8 @@ public class BLUETeleop extends LinearOpMode {
             Intake();
             Outtake();
 
+            hood.update();
+
             telemetry.update();
         }
 
@@ -85,6 +91,7 @@ public class BLUETeleop extends LinearOpMode {
             } else {
 
                 // 일반 Intake → 느린 속도
+                action.Stopper_On();
                 action.Intake_On(2);
             }
 
@@ -96,8 +103,12 @@ public class BLUETeleop extends LinearOpMode {
 
     void Outtake(){
         if (gamepad2.right_bumper){
+            action.Stopper_off();
+
             action.Outtake_On(1);
         } else if (gamepad2.left_bumper){
+            action.Stopper_off();
+
             action.Outtake_On(2);
         }
 
