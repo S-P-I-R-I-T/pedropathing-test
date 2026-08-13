@@ -20,18 +20,18 @@ public class ActionManaging {
     public static double IntakeR_Power = 1;
 
     public static double Stopper_Open_Pos = 1;
-    public static double Stopper_Close_Pos = 0.5;
+    public static double Stopper_Close_Pos = 0.55;
 
-    public static double Shooting_Far_Velocity = 2000;
-    public static double Shooting_Near_Velocity = 1000;
+    public static double Shooting_Far_Velocity = 2200;
+    public static double Shooting_Near_Velocity = 1200;
 
-    public static double Preheat_Velocity = 800;
-    public static double Outtake_Reverse_Velocity = -800;
-    public static double Turret_S_f = 17;
+    public static double Preheat_Velocity = 0;
+    public static double Outtake_Reverse_Velocity = 0;
+    public static double Turret_S_f = 20;
     public static double Turret_S_p = 200;
 
-    public static double Hood_Far = 0.6;
-    public static double Hood_Near = 0.5;
+    public static double Hood_Far = 0.7;
+    public static double Hood_Near = 0.3;
 
 
 
@@ -47,8 +47,11 @@ public class ActionManaging {
 
         Turret_R.setDirection(DcMotorSimple.Direction.REVERSE);
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
+        Turret_S.setDirection(DcMotorSimple.Direction.REVERSE);
 
         Turret_R.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Turret_S.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
 
         Turret_R.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Turret_R.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -83,10 +86,8 @@ public class ActionManaging {
 
     public void Outtake_On(double zone){
         if (zone == 1) {
-            Hood_Set(Hood_Far);
             Turret_S.setVelocity(Shooting_Far_Velocity);
         } else if (zone == 2) {
-            Hood_Set(Hood_Near);
             Turret_S.setVelocity(Shooting_Near_Velocity);
         }
     }

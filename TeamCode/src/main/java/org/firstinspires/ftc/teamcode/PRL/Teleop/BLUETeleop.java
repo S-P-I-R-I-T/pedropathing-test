@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
+import org.firstinspires.ftc.teamcode.PRL.Class.HoodControl;
 import org.firstinspires.ftc.teamcode.PRL.Class.LimelightClass;
 import org.firstinspires.ftc.teamcode.PRL.Class.PoseHolder;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -18,13 +19,14 @@ public class BLUETeleop extends LinearOpMode {
     LimelightClass limelight;
     ActionManaging action;
     Follower follower;
-
+    HoodControl hood;
+    public static boolean centric = true;
     public static final int BLUE_TAG_ID = 20;
 
 
-    public static final double START_X = 0;
-    public static final double START_Y = 0;
-    public static final double START_HEADING = 0;
+    public static final double START_X = 20;
+    public static final double START_Y = 120;
+    public static final double START_HEADING = Math.toRadians(144);
 
     boolean Is_Tracking = true;
 
@@ -46,18 +48,22 @@ public class BLUETeleop extends LinearOpMode {
             follower.setStartingPose(new Pose(START_X, START_Y, START_HEADING));
         }
 
+        hood = new HoodControl(action,follower);
+
 
         limelight.setTargetTagID(BLUE_TAG_ID);
         limelight.start();
 
         waitForStart();
+        follower.startTeleopDrive();
 
         while(opModeIsActive()){
             follower.update();
-
-            telemetry.addData("Pose", "%.1f, %.1f, %.1f",
-                    follower.getPose().getX(), follower.getPose().getY(),
-                    Math.toDegrees(follower.getPose().getHeading()));
+            follower.setTeleOpDrive(
+                    -gamepad1.left_stick_y,
+                    -gamepad1.left_stick_x,
+                    -gamepad1.right_stick_x,
+                    centric);
 
             telemetry.addData("Velocity",action.Outtake_Velocity());
 
@@ -65,6 +71,8 @@ public class BLUETeleop extends LinearOpMode {
 
             Intake();
             Outtake();
+
+            hood.update();
 
             telemetry.update();
         }
@@ -78,12 +86,13 @@ public class BLUETeleop extends LinearOpMode {
             if (gamepad2.right_bumper || gamepad2.left_bumper) {
 
                 // Outtake와 동시에 사용 → 풀파워
-                action.Intake_On(1);
+                action.Intake_On(2);
 
             } else {
 
                 // 일반 Intake → 느린 속도
-                action.Intake_On(2);
+                action.Stopper_On();
+                action.Intake_On(1);
             }
 
         } else {
@@ -94,11 +103,21 @@ public class BLUETeleop extends LinearOpMode {
 
     void Outtake(){
         if (gamepad2.right_bumper){
+            action.Stopper_off();
+
             action.Outtake_On(1);
         } else if (gamepad2.left_bumper){
+            action.Stopper_off();
+
             action.Outtake_On(2);
-        } else {
+        }
+
+        if (gamepad2.dpad_down){
             action.Outtake_Off();
+        }
+
+        if (gamepad2.left_trigger_pressed){
+            action.Outtake_Reverse();
         }
     }
 
