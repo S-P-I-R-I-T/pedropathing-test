@@ -12,7 +12,7 @@ public class HoodControl {
     public static double Hood_Max = 0.8;
 
     public static double Y_Near = 8;
-    public static double Y_Far = 135;
+    public static double Y_Far = 119;
     public static double Hood_Y_Near = 0.7;
     public static double Hood_Y_Far = 0.4;
 

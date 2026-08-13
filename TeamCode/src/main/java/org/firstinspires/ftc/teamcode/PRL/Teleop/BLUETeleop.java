@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
+import org.firstinspires.ftc.teamcode.PRL.Class.AutoAlign;
 import org.firstinspires.ftc.teamcode.PRL.Class.HoodControl;
 import org.firstinspires.ftc.teamcode.PRL.Class.LimelightClass;
 import org.firstinspires.ftc.teamcode.PRL.Class.PoseHolder;
@@ -20,6 +21,7 @@ public class BLUETeleop extends LinearOpMode {
     ActionManaging action;
     Follower follower;
     HoodControl hood;
+    AutoAlign align;
     public static boolean centric = true;
     public static final int BLUE_TAG_ID = 20;
 
@@ -28,13 +30,9 @@ public class BLUETeleop extends LinearOpMode {
     public static final double START_Y = 120;
     public static final double START_HEADING = Math.toRadians(144);
 
-    boolean Is_Tracking = true;
+    private boolean slowMode = false;
+    private double slowModeMultiplier = 0.5;
 
-    public static double kP = 0.02;
-    public static double kD = 0.003;
-    double lastError = 0;
-
-    boolean lastRightStickButton = false;
     @Override
     public void runOpMode() {
 
@@ -49,23 +47,54 @@ public class BLUETeleop extends LinearOpMode {
         }
 
         hood = new HoodControl(action,follower);
+        align = new AutoAlign(action,follower);
 
 
         limelight.setTargetTagID(BLUE_TAG_ID);
         limelight.start();
+
+        telemetry.addData("Turret", "터렛을 정면으로 맞추고 gamepad2 B를 누르세요");
+        telemetry.update();
+        while (!gamepad2.b && !isStopRequested()) {
+            idle();
+        }
+        action.Turret_ResetZero();
+        telemetry.addData("Turret", "Zero OK. Angle: %.1f", action.Turret_CurrentAngle());
+        telemetry.update();
 
         waitForStart();
         follower.startTeleopDrive();
 
         while(opModeIsActive()){
             follower.update();
-            follower.setTeleOpDrive(
+            if (!slowMode) follower.setTeleOpDrive(
                     -gamepad1.left_stick_y,
                     -gamepad1.left_stick_x,
                     -gamepad1.right_stick_x,
-                    centric);
+                    centric // Robot Centric
+            );
+                //This is how it looks with slowMode on
+            else follower.setTeleOpDrive(
+                    -gamepad1.left_stick_y * slowModeMultiplier,
+                    -gamepad1.left_stick_x * slowModeMultiplier,
+                    -gamepad1.right_stick_x * slowModeMultiplier,
+                    centric // Robot Centric
+            );
 
+            if (gamepad1.rightBumperWasPressed()) {
+                slowMode = !slowMode;
+            }
+            if (gamepad1.xWasPressed()) {
+                slowModeMultiplier += 0.25;
+            }
+            //Optional way to change slow mode strength
+            if (gamepad1.yWasPressed()) {
+                slowModeMultiplier -= 0.25;
+            }
+            telemetry.addData("SlowMode",slowModeMultiplier);
             telemetry.addData("Velocity",action.Outtake_Velocity());
+            telemetry.addData("TurretPos", action.Turret_Position());
+            telemetry.addData("TurretAngle", action.Turret_CurrentAngle());
 
             LLtracking();
 
@@ -115,50 +144,46 @@ public class BLUETeleop extends LinearOpMode {
         if (gamepad2.dpad_down){
             action.Outtake_Off();
         }
-
-        if (gamepad2.left_trigger_pressed){
-            action.Outtake_Reverse();
-        }
     }
 
     void LLtracking() {
 
         limelight.update();
 
-        if (gamepad2.right_stick_button && !lastRightStickButton) {
-            Is_Tracking = !Is_Tracking;
-        }
+        boolean leftTriggerHeld = gamepad2.left_trigger > 0.5;
+        boolean rightTriggerHeld = gamepad2.right_trigger > 0.5;
 
         // D-pad 수동 조작 최우선
         if (gamepad2.dpad_left) {
 
-            action.Turret_SetPower(0.3);
+            action.Turret_SetAngle(action.Turret_CurrentAngle() + 2);
 
         } else if (gamepad2.dpad_right) {
 
-            action.Turret_SetPower(-0.3);
+            action.Turret_SetAngle(action.Turret_CurrentAngle() - 2);
 
-        } else if (limelight.hasTarget() && Is_Tracking) {
+        } else if (rightTriggerHeld) {
 
-            double error = limelight.getTx();
+            // 오토얼라인 (포즈 기반)
+            action.Turret_PowerMode();
+            align.autoAlign(true); // BLUE
 
-            double derivative = error - lastError;
-            lastError = error;
+        } else if (leftTriggerHeld) {
 
-            double power = kP * error + kD * derivative;
-
-            power = Math.max(-0.6, Math.min(0.6, power));
-
-            action.Turret_SetPower(power);
-
-            telemetry.addData("tx", error);
-            telemetry.addData("Power", power);
+            // 라임라이트 트래킹
+            if (limelight.hasTarget()) {
+                action.Turret_SetAngle(action.Turret_CurrentAngle() + limelight.getTx());
+                telemetry.addData("tx", limelight.getTx());
+            } else {
+                action.Turret_SetAngle(action.Turret_CurrentAngle());
+                telemetry.addLine("No Target");
+            }
 
         } else {
 
-            action.Turret_SetPower(0);
-            telemetry.addLine("No Target");
+            action.Turret_SetAngle(action.Turret_CurrentAngle());
         }
 
+        telemetry.addData("TurretAngle", action.Turret_CurrentAngle());
     }
 }

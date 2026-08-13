@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-// 얼라이언스를 위한 패널티 유도 오토코드
+// 얼라이언스를 위한 패널티 유도 오토코드 by spirit 25324
 @Autonomous
 public class ezauto extends LinearOpMode {
 
@@ -24,10 +24,10 @@ public class ezauto extends LinearOpMode {
         fr = hardwareMap.get(DcMotor.class, "fr");
         rr = hardwareMap.get(DcMotor.class, "rr");
 
-        fl.setDirection(DcMotorSimple.Direction.FORWARD);
-        rl.setDirection(DcMotorSimple.Direction.FORWARD);
-        fr.setDirection(DcMotorSimple.Direction.REVERSE);
-        rr.setDirection(DcMotorSimple.Direction.REVERSE);
+        fl.setDirection(DcMotorSimple.Direction.REVERSE);
+        rl.setDirection(DcMotorSimple.Direction.REVERSE);
+        fr.setDirection(DcMotorSimple.Direction.FORWARD);
+        rr.setDirection(DcMotorSimple.Direction.FORWARD);
 
         fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
