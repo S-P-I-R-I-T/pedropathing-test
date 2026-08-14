@@ -16,12 +16,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(11.2)
-            .forwardZeroPowerAcceleration(-37.6955801937685)
-            .lateralZeroPowerAcceleration(-68.55921007796968)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.1,0,0.005,0.03))
-            .headingPIDFCoefficients(new PIDFCoefficients(1,0,0,0.01))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025,0,0.00001,0.55,0.02))
+            .mass(12.3)
+            .forwardZeroPowerAcceleration(-29.5498)
+            .lateralZeroPowerAcceleration(35.5886)
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.06,0,0,0.02))
+            .headingPIDFCoefficients(new PIDFCoefficients(0.7,0,0,0.04))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025,0,0.00001,0.5,0.015))
             .centripetalScaling(0.0005)
             ;
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
@@ -35,9 +35,8 @@ public class Constants {
         mecanumConstants.leftRearMotorName = "rl";
         mecanumConstants.rightFrontMotorName = "fr";
         mecanumConstants.rightRearMotorName = "rr";
-        mecanumConstants.xVelocity(53.479321096825785);
-        mecanumConstants.yVelocity(34.540006622554756);
-        mecanumConstants.maxPower(0.8);
+        mecanumConstants.xVelocity(55.672290231299215);
+        mecanumConstants.yVelocity(36.723804624061884);
 
         mecanumConstants.leftFrontMotorDirection = DcMotorSimple.Direction.REVERSE;
         mecanumConstants.leftRearMotorDirection = DcMotorSimple.Direction.REVERSE;
@@ -46,9 +45,9 @@ public class Constants {
 
     }
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-0.7)
-            .strafePodX(2.5)
-            .distanceUnit(DistanceUnit.MM)
+            .forwardPodY(0.6598)
+            .strafePodX(-0.7426)
+            .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);

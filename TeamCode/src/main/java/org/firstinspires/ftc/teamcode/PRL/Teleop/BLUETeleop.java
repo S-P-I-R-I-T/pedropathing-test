@@ -24,9 +24,9 @@ public class BLUETeleop extends LinearOpMode {
     public static final int BLUE_TAG_ID = 20;
 
 
-    public static final double START_X = 20;
-    public static final double START_Y = 120;
-    public static final double START_HEADING = Math.toRadians(144);
+    public static final double START_X = 72;
+    public static final double START_Y = 72;
+    public static final double START_HEADING = Math.toRadians(90);
 
 
     boolean Is_Tracking = true;
@@ -89,6 +89,10 @@ public class BLUETeleop extends LinearOpMode {
             if (gamepad1.yWasPressed()) {
                 slowModeMultiplier -= 0.25;
             }
+            telemetry.addData("X", follower.getPose().getX());
+            telemetry.addData("Y", follower.getPose().getY());
+            telemetry.addData("Heading", follower.getPose().getHeading());
+
             telemetry.addData("SlowMode",slowModeMultiplier);
             telemetry.addData("Velocity",action.Outtake_Velocity());
             telemetry.addData("TurretPos", action.Turret_Position());
