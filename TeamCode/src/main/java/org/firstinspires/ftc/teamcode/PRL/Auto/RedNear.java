@@ -1,17 +1,18 @@
 package org.firstinspires.ftc.teamcode.PRL.Auto;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.bylazar.telemetry.TelemetryManager;
-import com.bylazar.telemetry.PanelsTelemetry;
 
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
+import org.firstinspires.ftc.teamcode.PRL.Class.HoodControl;
+import org.firstinspires.ftc.teamcode.PRL.Class.LimelightClass;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous
@@ -20,41 +21,48 @@ public class RedNear extends OpMode {
     Follower follower;
     Timer pathtimer, opModeTimer;
     ActionManaging action;
+    HoodControl hood;
+
+    public static double kP = 0.02;
+    public static double kD = 0.003;
+    double lastError = 0;
+    LimelightClass limelight;
 
     public enum PathState {
         DRIVE_STARTPOS_SHOOTPOS,
         SHOOT_PRELOAD,
         DRIVE_SHOOTPOS_INTAKEGPP1,
+        DRIVE_INTAKEGPP1INTAKE,
         DRIVE_INTAKEGPP1_SHOOTPOS,
         SHOOT2,
         DRIVE_SHOOTPOS_INTAKEGPP2,
+        DRIVE_INTAKEGPP2_INTAKE,
         DRIVE_INTAKEGPP2_SHOOTPOS,
         SHOOT3,
-        DRIVE_SHOOTPOS_INTAKEGPP3A,
-        DRIVE_INTAKEGPP3A_INTAKEGPP3B,
-        DRIVE_INTAKEGPP3B_SHOOTPOS,
-        SHOOT4,
-        DRIVE_SHOOTPOS_INTAKEGPP3A_2,
-        DRIVE_INTAKEGPP3A_INTAKEGPP3B_2,
-        DRIVE_INTAKEGPP3B_SHOOTPOS_2,
-        SHOOT5
+        DRIVE_SHOOTPOS_LEAVEPOS;
     }
 
     PathState pathState;
 
-
     private final Pose startPose = new Pose(121.5, 120, Math.toRadians(36));
     private final Pose shootPose = new Pose(100.5, 99, Math.toRadians(36));
-    private final Pose gpp1Pose = new Pose(122.5, 82.5, Math.toRadians(0));
-    private final Pose gpp2Pose = new Pose(122.5, 59, Math.toRadians(0));
-    private final Pose gpp3aPose = new Pose(126.5, 37, Math.toRadians(0));
-    private final Pose gpp3bPose = new Pose(129.9, 59, Math.toRadians(31));
+    private final Pose shootPose2 = new Pose(100.5, 91, Math.toRadians(36));
+    private final Pose shootPose3 = new Pose(100.5, 81, Math.toRadians(36));
+
+    private final Pose wp1Pose = new Pose(100.5, 79, Math.toRadians(0));
+    private final Pose gpp1Pose = new Pose(126, 79, Math.toRadians(0));
+
+
+    private final Pose wp2Pose = new Pose(100.5, 42, Math.toRadians(0));
+    private final Pose gpp2Pose = new Pose(128.5, 42, Math.toRadians(0));
+    private final Pose leavePose = new Pose(126,90,Math.toRadians(0));
+
 
 
     private PathChain driveStartPosShootPos;
     private PathChain driveShootPosIntakeGPP1, driveIntakeGPP1ShootPos;
     private PathChain driveShootPosIntakeGPP2, driveIntakeGPP2ShootPos;
-    private PathChain driveShootPosIntakeGPP3a, driveIntakeGPP3aGPP3b, driveGPP3bShootPos;
+    private PathChain driveShootPosLeave,driveIntakeGPP1Intake,driveIntakeGPP2Intake;
 
     public void buildPaths() {
         driveStartPosShootPos = follower.pathBuilder()
@@ -62,45 +70,43 @@ public class RedNear extends OpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), shootPose.getHeading())
                 .build();
 
+
         driveShootPosIntakeGPP1 = follower.pathBuilder()
-                .addPath(new BezierCurve(shootPose, new Pose(59, 81), gpp1Pose))
-                .setConstantHeadingInterpolation(gpp1Pose.getHeading())
+                .addPath(new BezierLine(shootPose, wp1Pose))
+                .setLinearHeadingInterpolation(shootPose.getHeading(),Math.toRadians(180))
                 .build();
 
+        driveIntakeGPP1Intake = follower.pathBuilder()
+                .addPath(new BezierLine(wp1Pose, gpp1Pose))
+                .setLinearHeadingInterpolation(wp1Pose.getHeading(), gpp1Pose.getHeading())
+                .build();
 
         driveIntakeGPP1ShootPos = follower.pathBuilder()
-                .addPath(new BezierLine(gpp1Pose, shootPose))
-                .setLinearHeadingInterpolation(gpp1Pose.getHeading(), shootPose.getHeading())
+                .addPath(new BezierLine(gpp1Pose, shootPose2))
+                .setLinearHeadingInterpolation(gpp1Pose.getHeading(),shootPose.getHeading())
                 .build();
 
 
         driveShootPosIntakeGPP2 = follower.pathBuilder()
-                .addPath(new BezierCurve(shootPose, new Pose(75.18459302325581, 56.028343023255815), gpp2Pose))
-                .setConstantHeadingInterpolation(gpp2Pose.getHeading())
+                .addPath(new BezierLine(shootPose2, wp2Pose))
+                .setLinearHeadingInterpolation(shootPose.getHeading(),wp2Pose.getHeading())
+
+                .build();
+
+        driveIntakeGPP2Intake = follower.pathBuilder()
+                .addPath(new BezierLine(wp2Pose, gpp2Pose))
+                .setLinearHeadingInterpolation(wp2Pose.getHeading(), gpp2Pose.getHeading())
                 .build();
 
 
         driveIntakeGPP2ShootPos = follower.pathBuilder()
-                .addPath(new BezierLine(gpp2Pose, shootPose))
-                .setLinearHeadingInterpolation(gpp2Pose.getHeading(), shootPose.getHeading())
+                .addPath(new BezierLine(gpp2Pose, shootPose3))
+                .setLinearHeadingInterpolation(gpp2Pose.getHeading(),shootPose.getHeading())
                 .build();
 
-
-        driveShootPosIntakeGPP3a = follower.pathBuilder()
-                .addPath(new BezierLine(shootPose, gpp3aPose))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .build();
-
-
-        driveIntakeGPP3aGPP3b = follower.pathBuilder()
-                .addPath(new BezierCurve(gpp3aPose, new Pose(9.95261627906976, 50.00726744186045), gpp3bPose))
-                .setLinearHeadingInterpolation(gpp3aPose.getHeading(), gpp3bPose.getHeading())
-                .build();
-
-
-        driveGPP3bShootPos = follower.pathBuilder()
-                .addPath(new BezierCurve(gpp3bPose, new Pose(28.122674418604653, 46.710029069767444), shootPose))
-                .setLinearHeadingInterpolation(gpp3bPose.getHeading(), shootPose.getHeading())
+        driveShootPosLeave = follower.pathBuilder()
+                .addPath(new BezierLine(shootPose3,leavePose))
+                .setLinearHeadingInterpolation(shootPose.getHeading(),leavePose.getHeading())
                 .build();
     }
 
@@ -113,7 +119,10 @@ public class RedNear extends OpMode {
 
             case SHOOT_PRELOAD:
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
+                    align();
+
                     action.Outtake_On(2);
+                    action.Stopper_off();
                 }
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3) {
                     action.Intake_On(2);
@@ -129,12 +138,22 @@ public class RedNear extends OpMode {
                 break;
 
             case DRIVE_SHOOTPOS_INTAKEGPP1:
-                action.Intake_On(1);
                 action.Stopper_On();
+
+                if (!follower.isBusy()) {
+
+                    panelsTelemetry.debug("Status", "Done shoot pos intakegpp1");
+
+                    follower.followPath(driveIntakeGPP1Intake, 0.5,true);
+                    setPathState(PathState.DRIVE_INTAKEGPP1INTAKE);
+                }
+                break;
+
+            case DRIVE_INTAKEGPP1INTAKE:
+                action.Intake_On(1);
                 if (!follower.isBusy()) {
                     action.Intake_Off();
-                    action.Stopper_off();
-                    panelsTelemetry.debug("Status", "Done Intake GPP1");
+                    panelsTelemetry.debug("Status", "Done Intake gpp 1 intake");
 
                     follower.followPath(driveIntakeGPP1ShootPos, true);
                     setPathState(PathState.DRIVE_INTAKEGPP1_SHOOTPOS);
@@ -149,12 +168,13 @@ public class RedNear extends OpMode {
 
             case SHOOT2:
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
+                    align();
+
                     action.Outtake_On(2);
                     action.Stopper_off();
                 }
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3) {
                     action.Intake_On(2);
-                    action.Stopper_On();
                 }
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 5) {
                     action.Intake_Off();
@@ -167,16 +187,30 @@ public class RedNear extends OpMode {
                 break;
 
             case DRIVE_SHOOTPOS_INTAKEGPP2:
-                action.Intake_On(1);
                 action.Stopper_On();
+
+                if (!follower.isBusy()) {
+
+                    panelsTelemetry.debug("Status", "Done shoot pos intakegpp2");
+
+                    follower.followPath(driveIntakeGPP2Intake, 0.5,true);
+
+                    setPathState(PathState.DRIVE_INTAKEGPP2_INTAKE);
+                }
+
+                break;
+
+            case DRIVE_INTAKEGPP2_INTAKE:
+                action.Intake_On(1);
+
                 if (!follower.isBusy()) {
                     action.Intake_Off();
-                    action.Stopper_off();
                     panelsTelemetry.debug("Status", "Done Intake GPP2");
 
                     follower.followPath(driveIntakeGPP2ShootPos, true);
                     setPathState(PathState.DRIVE_INTAKEGPP2_SHOOTPOS);
                 }
+
                 break;
 
             case DRIVE_INTAKEGPP2_SHOOTPOS:
@@ -187,109 +221,28 @@ public class RedNear extends OpMode {
 
             case SHOOT3:
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
+                    align();
+
                     action.Outtake_On(2);
                     action.Stopper_off();
                 }
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3) {
                     action.Intake_On(2);
-                    action.Stopper_On();
                 }
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 5) {
                     action.Intake_Off();
                     action.Outtake_Off();
                     panelsTelemetry.debug("Status", "Done Shoot3");
 
-                    follower.followPath(driveShootPosIntakeGPP3a, true);
-                    setPathState(PathState.DRIVE_SHOOTPOS_INTAKEGPP3A);
+                    follower.followPath(driveShootPosLeave, true);
+                    setPathState(PathState.DRIVE_SHOOTPOS_LEAVEPOS);
+
                 }
                 break;
 
-            case DRIVE_SHOOTPOS_INTAKEGPP3A:
-                if (!follower.isBusy()) {
-                    follower.followPath(driveIntakeGPP3aGPP3b, true);
-                    setPathState(PathState.DRIVE_INTAKEGPP3A_INTAKEGPP3B);
-                }
-                break;
-
-            case DRIVE_INTAKEGPP3A_INTAKEGPP3B:
-                action.Intake_On(1);
-                action.Stopper_On();
-                if (!follower.isBusy()) {
-                    action.Intake_Off();
-                    action.Stopper_off();
-                    panelsTelemetry.debug("Status", "Done Intake GPP3");
-
-                    follower.followPath(driveGPP3bShootPos, true);
-                    setPathState(PathState.DRIVE_INTAKEGPP3B_SHOOTPOS);
-                }
-                break;
-
-            case DRIVE_INTAKEGPP3B_SHOOTPOS:
-                if (!follower.isBusy()) {
-                    setPathState(PathState.SHOOT4);
-                }
-                break;
-
-            case SHOOT4:
-                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
-                    action.Outtake_On(2);
-                    action.Stopper_off();
-                }
-                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3) {
-                    action.Intake_On(2);
-                    action.Stopper_On();
-                }
-                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 5) {
-                    action.Intake_Off();
-                    action.Outtake_Off();
-                    panelsTelemetry.debug("Status", "Done Shoot4");
-
-
-                    follower.followPath(driveShootPosIntakeGPP3a, true);
-                    setPathState(PathState.DRIVE_SHOOTPOS_INTAKEGPP3A_2);
-                }
-                break;
-
-            case DRIVE_SHOOTPOS_INTAKEGPP3A_2:
-                if (!follower.isBusy()) {
-                    follower.followPath(driveIntakeGPP3aGPP3b, true);
-                    setPathState(PathState.DRIVE_INTAKEGPP3A_INTAKEGPP3B_2);
-                }
-                break;
-
-            case DRIVE_INTAKEGPP3A_INTAKEGPP3B_2:
-                action.Intake_On(1);
-                action.Stopper_On();
-                if (!follower.isBusy()) {
-                    action.Intake_Off();
-                    action.Stopper_off();
-                    panelsTelemetry.debug("Status", "Done Intake GPP3 (2nd)");
-
-                    follower.followPath(driveGPP3bShootPos, true);
-                    setPathState(PathState.DRIVE_INTAKEGPP3B_SHOOTPOS_2);
-                }
-                break;
-
-            case DRIVE_INTAKEGPP3B_SHOOTPOS_2:
-                if (!follower.isBusy()) {
-                    setPathState(PathState.SHOOT5);
-                }
-                break;
-
-            case SHOOT5:
-                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
-                    action.Outtake_On(2);
-                    action.Stopper_off();
-                }
-                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 3) {
-                    action.Intake_On(2);
-                    action.Stopper_On();
-                }
-                if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 5) {
-                    action.Intake_Off();
-                    action.Outtake_Off();
-                    panelsTelemetry.debug("Status", "Auto Complete");
-                }
+            case DRIVE_SHOOTPOS_LEAVEPOS:
+                action.Intake_Off();
+                action.Outtake_Off();
                 break;
 
             default:
@@ -313,11 +266,19 @@ public class RedNear extends OpMode {
         follower = Constants.createFollower(hardwareMap);
 
         action = new ActionManaging(hardwareMap);
+        hood = new HoodControl(action,follower);
+
+        limelight = new LimelightClass(hardwareMap);
+        limelight.start();
+
+        limelight.setTargetTagID(20);
 
         buildPaths();
         follower.setStartingPose(startPose);
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
+
+
     }
 
     public void start() {
@@ -328,7 +289,9 @@ public class RedNear extends OpMode {
     @Override
     public void loop() {
         follower.update();
+        follower.setMaxPower(0.8);
         statePathUpdate();
+        limelight.update();
 
         panelsTelemetry.debug("Path State", pathState.toString());
         panelsTelemetry.debug("X", follower.getPose().getX());
@@ -337,5 +300,25 @@ public class RedNear extends OpMode {
         panelsTelemetry.debug("Path Time", pathtimer.getElapsedTimeSeconds());
         panelsTelemetry.debug("opMode Time", opModeTimer.getElapsedTimeSeconds());
         panelsTelemetry.update(telemetry);
+    }
+
+    public void align(){
+        if (limelight.hasTarget()) {
+
+            double error = limelight.getTx();
+
+            double derivative = error - lastError;
+            lastError = error;
+
+            double power = kP * error + kD * derivative;
+
+            power = Math.max(-0.6, Math.min(0.6, power));
+
+            action.Turret_SetPower(power);
+
+
+            telemetry.addData("tx", error);
+            telemetry.addData("Power", power);
+        }
     }
 }

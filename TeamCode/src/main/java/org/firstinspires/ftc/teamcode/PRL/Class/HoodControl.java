@@ -8,7 +8,7 @@ public class HoodControl {
     private final ActionManaging action;
     private final Follower follower;
 
-    public static double Hood_Min = 0.4;
+    public static double Hood_Min = 0.3;
     public static double Hood_Max = 0.8;
 
     public static double Y_Near = 8;

@@ -32,9 +32,11 @@ public class BlueNear extends OpMode {
         DRIVE_STARTPOS_SHOOTPOS,
         SHOOT_PRELOAD,
         DRIVE_SHOOTPOS_INTAKEGPP1,
+        DRIVE_INTAKEGPP1INTAKE,
         DRIVE_INTAKEGPP1_SHOOTPOS,
         SHOOT2,
         DRIVE_SHOOTPOS_INTAKEGPP2,
+        DRIVE_INTAKEGPP2_INTAKE,
         DRIVE_INTAKEGPP2_SHOOTPOS,
         SHOOT3,
         DRIVE_SHOOTPOS_LEAVEPOS;
@@ -44,19 +46,23 @@ public class BlueNear extends OpMode {
 
     private final Pose startPose = new Pose(20, 120, Math.toRadians(144));
     private final Pose shootPose = new Pose(41, 99, Math.toRadians(144));
+    private final Pose shootPose2 = new Pose(41, 91, Math.toRadians(144));
+    private final Pose shootPose3 = new Pose(41, 81, Math.toRadians(144));
 
-    private final Pose wp1Pose = new Pose(41, 83, Math.toRadians(180));
-    private final Pose gpp1Pose = new Pose(16, 83, Math.toRadians(180));
+    private final Pose wp1Pose = new Pose(41, 79, Math.toRadians(180));
+    private final Pose gpp1Pose = new Pose(15.5, 79, Math.toRadians(180));
 
-    private final Pose wp2Pose = new Pose(41, 59, Math.toRadians(180));
-    private final Pose gpp2Pose = new Pose(16, 59, Math.toRadians(180));
-    private final Pose leavePose = new Pose(16,90,Math.toRadians(180));
+
+    private final Pose wp2Pose = new Pose(41, 42, Math.toRadians(180));
+    private final Pose gpp2Pose = new Pose(13, 42, Math.toRadians(180));
+    private final Pose leavePose = new Pose(15.5,90,Math.toRadians(180));
+
 
 
     private PathChain driveStartPosShootPos;
     private PathChain driveShootPosIntakeGPP1, driveIntakeGPP1ShootPos;
     private PathChain driveShootPosIntakeGPP2, driveIntakeGPP2ShootPos;
-    private PathChain driveShootPosLeave;
+    private PathChain driveShootPosLeave,driveIntakeGPP1Intake,driveIntakeGPP2Intake;
 
     public void buildPaths() {
         driveStartPosShootPos = follower.pathBuilder()
@@ -67,34 +73,40 @@ public class BlueNear extends OpMode {
 
         driveShootPosIntakeGPP1 = follower.pathBuilder()
                 .addPath(new BezierLine(shootPose, wp1Pose))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .setLinearHeadingInterpolation(shootPose.getHeading(),Math.toRadians(180))
+                .build();
+
+        driveIntakeGPP1Intake = follower.pathBuilder()
                 .addPath(new BezierLine(wp1Pose, gpp1Pose))
                 .setLinearHeadingInterpolation(wp1Pose.getHeading(), gpp1Pose.getHeading())
                 .build();
 
-
         driveIntakeGPP1ShootPos = follower.pathBuilder()
-                .addPath(new BezierLine(gpp1Pose, shootPose))
-                .setConstantHeadingInterpolation(shootPose.getHeading())
+                .addPath(new BezierLine(gpp1Pose, shootPose2))
+                .setLinearHeadingInterpolation(gpp1Pose.getHeading(),shootPose.getHeading())
                 .build();
 
 
         driveShootPosIntakeGPP2 = follower.pathBuilder()
-                .addPath(new BezierLine(shootPose, wp2Pose))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .addPath(new BezierLine(shootPose2, wp2Pose))
+                .setLinearHeadingInterpolation(shootPose.getHeading(),wp2Pose.getHeading())
+
+                .build();
+
+        driveIntakeGPP2Intake = follower.pathBuilder()
                 .addPath(new BezierLine(wp2Pose, gpp2Pose))
                 .setLinearHeadingInterpolation(wp2Pose.getHeading(), gpp2Pose.getHeading())
                 .build();
 
 
         driveIntakeGPP2ShootPos = follower.pathBuilder()
-                .addPath(new BezierLine(gpp2Pose, shootPose))
-                .setConstantHeadingInterpolation(shootPose.getHeading())
+                .addPath(new BezierLine(gpp2Pose, shootPose3))
+                .setLinearHeadingInterpolation(gpp2Pose.getHeading(),shootPose.getHeading())
                 .build();
 
         driveShootPosLeave = follower.pathBuilder()
-                .addPath(new BezierLine(shootPose,leavePose))
-                .setConstantHeadingInterpolation(leavePose.getHeading())
+                .addPath(new BezierLine(shootPose3,leavePose))
+                .setLinearHeadingInterpolation(shootPose.getHeading(),leavePose.getHeading())
                 .build();
     }
 
@@ -128,10 +140,20 @@ public class BlueNear extends OpMode {
             case DRIVE_SHOOTPOS_INTAKEGPP1:
                 action.Stopper_On();
 
+                if (!follower.isBusy()) {
+
+                    panelsTelemetry.debug("Status", "Done shoot pos intakegpp1");
+
+                    follower.followPath(driveIntakeGPP1Intake, 0.5,true);
+                    setPathState(PathState.DRIVE_INTAKEGPP1INTAKE);
+                }
+                break;
+
+            case DRIVE_INTAKEGPP1INTAKE:
                 action.Intake_On(1);
                 if (!follower.isBusy()) {
                     action.Intake_Off();
-                    panelsTelemetry.debug("Status", "Done Intake GPP1");
+                    panelsTelemetry.debug("Status", "Done Intake gpp 1 intake");
 
                     follower.followPath(driveIntakeGPP1ShootPos, true);
                     setPathState(PathState.DRIVE_INTAKEGPP1_SHOOTPOS);
@@ -167,7 +189,20 @@ public class BlueNear extends OpMode {
             case DRIVE_SHOOTPOS_INTAKEGPP2:
                 action.Stopper_On();
 
+                if (!follower.isBusy()) {
+
+                    panelsTelemetry.debug("Status", "Done shoot pos intakegpp2");
+
+                    follower.followPath(driveIntakeGPP2Intake, 0.5,true);
+
+                    setPathState(PathState.DRIVE_INTAKEGPP2_INTAKE);
+                }
+
+                break;
+
+            case DRIVE_INTAKEGPP2_INTAKE:
                 action.Intake_On(1);
+
                 if (!follower.isBusy()) {
                     action.Intake_Off();
                     panelsTelemetry.debug("Status", "Done Intake GPP2");
@@ -175,6 +210,7 @@ public class BlueNear extends OpMode {
                     follower.followPath(driveIntakeGPP2ShootPos, true);
                     setPathState(PathState.DRIVE_INTAKEGPP2_SHOOTPOS);
                 }
+
                 break;
 
             case DRIVE_INTAKEGPP2_SHOOTPOS:
@@ -253,6 +289,7 @@ public class BlueNear extends OpMode {
     @Override
     public void loop() {
         follower.update();
+        follower.setMaxPower(0.8);
         statePathUpdate();
         limelight.update();
 

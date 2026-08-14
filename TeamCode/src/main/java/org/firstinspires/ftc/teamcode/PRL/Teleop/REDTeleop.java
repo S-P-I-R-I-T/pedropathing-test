@@ -14,17 +14,12 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
 @TeleOp
-public class BLUETeleop extends LinearOpMode {
+public class REDTeleop extends LinearOpMode {
 
     LimelightClass limelight;
     ActionManaging action;
     Follower follower;
-    public static final int BLUE_TAG_ID = 20;
-
-
-    public static final double START_X = 72;
-    public static final double START_Y = 72;
-    public static final double START_HEADING = Math.toRadians(90);
+    public static final int RED_TAG_ID = 24;
 
     public static double Near_Hood = 0.35;
     public static double Far_Hood = 0.65;
@@ -51,16 +46,9 @@ public class BLUETeleop extends LinearOpMode {
 
         IMU_Driving imuDriving = new IMU_Driving(hardwareMap,telemetry,gamepad1);
 
-        follower = Constants.createFollower(hardwareMap);
-        if (PoseHolder.endPose != null) {
-            follower.setStartingPose(PoseHolder.endPose);
-        } else {
-            follower.setStartingPose(new Pose(START_X, START_Y, START_HEADING));
-        }
 
 
-
-        limelight.setTargetTagID(BLUE_TAG_ID);
+        limelight.setTargetTagID(RED_TAG_ID);
         limelight.start();
         telemetry.update();
 
@@ -70,13 +58,7 @@ public class BLUETeleop extends LinearOpMode {
         imuDriving.getYaw();
 
         while(opModeIsActive()){
-            follower.update();
-
-
-
-            telemetry.addData("X", follower.getPose().getX());
-            telemetry.addData("Y", follower.getPose().getY());
-            telemetry.addData("Heading", follower.getPose().getHeading());
+            imuDriving.controlWithPad(IMU_Driving.GamepadPurpose.WHOLE);
 
             telemetry.addData("Velocity",action.Outtake_Velocity());
             telemetry.addData("TurretPos", action.Turret_Position());
