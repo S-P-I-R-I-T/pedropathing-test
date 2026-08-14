@@ -11,6 +11,8 @@ import com.bylazar.telemetry.TelemetryManager;
 import com.bylazar.telemetry.PanelsTelemetry;
 
 import org.firstinspires.ftc.teamcode.PRL.Class.ActionManaging;
+import org.firstinspires.ftc.teamcode.PRL.Class.HoodControl;
+import org.firstinspires.ftc.teamcode.PRL.Class.LimelightClass;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous
@@ -19,6 +21,12 @@ public class BlueNear extends OpMode {
     Follower follower;
     Timer pathtimer, opModeTimer;
     ActionManaging action;
+    HoodControl hood;
+
+    public static double kP = 0.02;
+    public static double kD = 0.003;
+    double lastError = 0;
+    LimelightClass limelight;
 
     public enum PathState {
         DRIVE_STARTPOS_SHOOTPOS,
@@ -124,6 +132,7 @@ public class BlueNear extends OpMode {
                 break;
 
             case SHOOT_PRELOAD:
+                align();
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
                     action.Outtake_On(2);
                     action.Stopper_off();
@@ -142,6 +151,8 @@ public class BlueNear extends OpMode {
                 break;
 
             case DRIVE_SHOOTPOS_INTAKEGPP1:
+                action.Stopper_On();
+
                 action.Intake_On(1);
                 if (!follower.isBusy()) {
                     action.Intake_Off();
@@ -159,6 +170,7 @@ public class BlueNear extends OpMode {
                 break;
 
             case SHOOT2:
+                align();
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
                     action.Outtake_On(2);
                     action.Stopper_off();
@@ -177,6 +189,8 @@ public class BlueNear extends OpMode {
                 break;
 
             case DRIVE_SHOOTPOS_INTAKEGPP2:
+                action.Stopper_On();
+
                 action.Intake_On(1);
                 if (!follower.isBusy()) {
                     action.Intake_Off();
@@ -194,6 +208,7 @@ public class BlueNear extends OpMode {
                 break;
 
             case SHOOT3:
+                align();
                 if (!follower.isBusy() && pathtimer.getElapsedTimeSeconds() >= 1) {
                     action.Outtake_On(2);
                     action.Stopper_off();
@@ -219,6 +234,8 @@ public class BlueNear extends OpMode {
                 break;
 
             case DRIVE_INTAKEGPP3A_INTAKEGPP3B:
+                action.Stopper_On();
+
                 action.Intake_On(1);
                 if (!follower.isBusy()) {
                     panelsTelemetry.debug("Status", "Done Intake GPP3a->b");
@@ -280,11 +297,19 @@ public class BlueNear extends OpMode {
         follower = Constants.createFollower(hardwareMap);
 
         action = new ActionManaging(hardwareMap);
+        hood = new HoodControl(action,follower);
+
+        limelight = new LimelightClass(hardwareMap);
+        limelight.start();
+
+        limelight.setTargetTagID(20);
 
         buildPaths();
         follower.setStartingPose(startPose);
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
+
+
     }
 
     public void start() {
@@ -296,6 +321,7 @@ public class BlueNear extends OpMode {
     public void loop() {
         follower.update();
         statePathUpdate();
+        limelight.update();
 
         panelsTelemetry.debug("Path State", pathState.toString());
         panelsTelemetry.debug("X", follower.getPose().getX());
@@ -304,5 +330,25 @@ public class BlueNear extends OpMode {
         panelsTelemetry.debug("Path Time", pathtimer.getElapsedTimeSeconds());
         panelsTelemetry.debug("opMode Time", opModeTimer.getElapsedTimeSeconds());
         panelsTelemetry.update(telemetry);
+    }
+
+    public void align(){
+        if (limelight.hasTarget()) {
+
+            double error = limelight.getTx();
+
+            double derivative = error - lastError;
+            lastError = error;
+
+            double power = kP * error + kD * derivative;
+
+            power = Math.max(-0.6, Math.min(0.6, power));
+
+            action.Turret_SetPower(power);
+
+
+            telemetry.addData("tx", error);
+            telemetry.addData("Power", power);
+        }
     }
 }

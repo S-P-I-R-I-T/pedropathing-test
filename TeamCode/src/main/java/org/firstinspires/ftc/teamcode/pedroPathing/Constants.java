@@ -37,6 +37,7 @@ public class Constants {
         mecanumConstants.rightRearMotorName = "rr";
         mecanumConstants.xVelocity(53.479321096825785);
         mecanumConstants.yVelocity(34.540006622554756);
+        mecanumConstants.maxPower(0.8);
 
         mecanumConstants.leftFrontMotorDirection = DcMotorSimple.Direction.REVERSE;
         mecanumConstants.leftRearMotorDirection = DcMotorSimple.Direction.REVERSE;
