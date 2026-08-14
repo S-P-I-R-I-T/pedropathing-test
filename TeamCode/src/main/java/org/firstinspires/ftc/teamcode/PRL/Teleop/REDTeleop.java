@@ -18,7 +18,6 @@ public class REDTeleop extends LinearOpMode {
 
     LimelightClass limelight;
     ActionManaging action;
-    Follower follower;
     public static final int RED_TAG_ID = 24;
 
     public static double Near_Hood = 0.35;

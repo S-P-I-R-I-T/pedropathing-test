@@ -18,13 +18,7 @@ public class BLUETeleop extends LinearOpMode {
 
     LimelightClass limelight;
     ActionManaging action;
-    Follower follower;
     public static final int BLUE_TAG_ID = 20;
-
-
-    public static final double START_X = 72;
-    public static final double START_Y = 72;
-    public static final double START_HEADING = Math.toRadians(90);
 
     public static double Near_Hood = 0.35;
     public static double Far_Hood = 0.65;
