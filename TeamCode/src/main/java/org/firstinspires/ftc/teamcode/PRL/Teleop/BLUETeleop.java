@@ -51,14 +51,6 @@ public class BLUETeleop extends LinearOpMode {
 
         IMU_Driving imuDriving = new IMU_Driving(hardwareMap,telemetry,gamepad1);
 
-        follower = Constants.createFollower(hardwareMap);
-        if (PoseHolder.endPose != null) {
-            follower.setStartingPose(PoseHolder.endPose);
-        } else {
-            follower.setStartingPose(new Pose(START_X, START_Y, START_HEADING));
-        }
-
-
 
         limelight.setTargetTagID(BLUE_TAG_ID);
         limelight.start();
@@ -70,25 +62,12 @@ public class BLUETeleop extends LinearOpMode {
         imuDriving.getYaw();
 
         while(opModeIsActive()){
-            follower.update();
-
-
-
-            telemetry.addData("X", follower.getPose().getX());
-            telemetry.addData("Y", follower.getPose().getY());
-            telemetry.addData("Heading", follower.getPose().getHeading());
-
-            telemetry.addData("Velocity",action.Outtake_Velocity());
-            telemetry.addData("TurretPos", action.Turret_Position());
-            telemetry.addData("TurretAngle", action.Turret_CurrentAngle());
+            imuDriving.controlWithPad(IMU_Driving.GamepadPurpose.WHOLE);
 
             LLtracking();
 
             Intake();
             Outtake();
-
-
-
 
             telemetry.update();
         }

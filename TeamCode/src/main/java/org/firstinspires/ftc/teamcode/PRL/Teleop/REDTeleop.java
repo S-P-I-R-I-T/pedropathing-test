@@ -61,8 +61,7 @@ public class REDTeleop extends LinearOpMode {
             imuDriving.controlWithPad(IMU_Driving.GamepadPurpose.WHOLE);
 
             telemetry.addData("Velocity",action.Outtake_Velocity());
-            telemetry.addData("TurretPos", action.Turret_Position());
-            telemetry.addData("TurretAngle", action.Turret_CurrentAngle());
+
 
             LLtracking();
 
