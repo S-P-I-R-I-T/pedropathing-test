@@ -2,12 +2,18 @@ package org.firstinspires.ftc.teamcode.PRL.Class;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.JavaUtil;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+import org.firstinspires.ftc.teamcode.Util.ADcMotorEx;
+import org.firstinspires.ftc.teamcode.Util.TimedSensor;
+
 public class IMU_Driving {
     public static class Vector2d {
         public double x;
@@ -18,31 +24,64 @@ public class IMU_Driving {
         }
     }
     public IMU_Driving(HardwareMap hardwareMap, Telemetry telemetry, Gamepad gamepad1){
-        this.fl = hardwareMap.get(DcMotor.class,"fl");
-        this.fr = hardwareMap.get(DcMotor.class,"fr");
-        this.rl = hardwareMap.get(DcMotor.class,"rl");
-        this.rr = hardwareMap.get(DcMotor.class,"rr");
-        this.imu = hardwareMap.get(IMU.class,"imu");;
+        this.fl = new ADcMotorEx(hardwareMap.get(DcMotorEx.class,"fl"));
+        this.fr = new ADcMotorEx(hardwareMap.get(DcMotorEx.class,"fr"));
+        this.rl = new ADcMotorEx(hardwareMap.get(DcMotorEx.class,"rl"));
+        this.rr = new ADcMotorEx(hardwareMap.get(DcMotorEx.class,"rr"));
+        this.imu = hardwareMap.get(IMU.class,"imu");
         this.telemetry = telemetry;
         this.gamepad1 = gamepad1;
+        this.yawSensor = new TimedSensor<>(
+                () -> imu.getRobotYawPitchRollAngles().getYaw(),
+                YAW_INTERVAL_MS);
     }
-    public DcMotor fl,fr,rl,rr;
+    public ADcMotorEx fl,fr,rl,rr;
     public IMU imu;
     public Telemetry telemetry;
     public Gamepad gamepad1;
+
+    private final TimedSensor<Double> yawSensor;
+    private static final long YAW_INTERVAL_MS = 30;
+    private static final double ROTATE_TIMEOUT_SECONDS = 3.0;
 
     public double speed = 1.0;
     double yaw;
 
     public void init(){
+        // 좌측 REVERSE/우측 FORWARD 구성 — 기존엔 createFollower()가 이걸 대신 해줘서
+        // follower 없이 실행하면 구동 방향이 틀어졌음 (루트 원인: 자체 구성 누락)
+        fl.setDirection(DcMotorSimple.Direction.REVERSE);
+        rl.setDirection(DcMotorSimple.Direction.REVERSE);
+        fr.setDirection(DcMotorSimple.Direction.FORWARD);
+        rr.setDirection(DcMotorSimple.Direction.FORWARD);
+
+        ADcMotorEx[] drives = {fl, fr, rl, rr};
+        for (ADcMotorEx m : drives) {
+            m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+
         imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.LEFT, RevHubOrientationOnRobot.UsbFacingDirection.UP)));
-        imu.resetYaw();
+        resetImuYaw();
         telemetry.addData("IMU: ", "INITIALIZED");
+    }
+
+    /** Pedro holdPoint/followPath 등이 raw 모터를 직접 쓴 뒤 호출 — 래퍼 캐시 동기화 */
+    public void resetDriveWriteCache(){
+        fl.resetWriteCache();
+        fr.resetWriteCache();
+        rl.resetWriteCache();
+        rr.resetWriteCache();
+    }
+
+    private void resetImuYaw(){
+        imu.resetYaw();
+        yawSensor.refresh(); // 리셋 직후 값으로 캐시 갱신 (스로틀 stale 방지)
     }
 
 
     public double getYaw(){
-        yaw = imu.getRobotYawPitchRollAngles().getYaw();
+        yaw = yawSensor.read();
 
         telemetry.addData("yaw: ",yaw);
         return yaw;
@@ -59,7 +98,7 @@ public class IMU_Driving {
             return;
         }
 
-        imu.resetYaw();
+        resetImuYaw();
     }
 
     public double rotateSlowThreshold = 50;
@@ -83,25 +122,37 @@ public class IMU_Driving {
             rx = yawDist/ rotateSlowThreshold; // 거리가 임계값 이하면 거리에 반비례해 1~0
         }
 
-        telemetry.addData("rotate: ", targetYaw + "/" + -rx + "/" + yawDist);
+        telemetry.addData("rotate", "%.1f/%.3f/%.1f", targetYaw, -rx, yawDist);
         return -rx;
     }
 
     /**
-     *
-     * @param targetYaw 타겟 각도
-     * @see IMU_Driving#getRotatePower(double)
+     * 목표 각도까지 제자리 회전 (blocking).
+     * 탈출 조건: 4° 도달 / 3초 타임아웃 / DS STOP으로 스레드 interrupt.
+     * @return 목표각 도달 여부
      */
     public boolean rotate2Deg(double targetYaw){
-        double rx;
-        do {
-            rx = getRotatePower(targetYaw);
-            fl.setPower(rx * speed);
-            fr.setPower(-rx  * speed);
-            rl.setPower(rx  * speed);
-            rr.setPower(-rx  * speed);
-        }while(Math.abs(getYaw()-targetYaw) > 4);
-        return false;
+        final double tolerance = 4;
+        ElapsedTime timeout = new ElapsedTime();
+        try {
+            while (!Thread.currentThread().isInterrupted()
+                    && timeout.seconds() < ROTATE_TIMEOUT_SECONDS
+                    && Math.abs(getYaw() - targetYaw) > tolerance) {
+                double rx = getRotatePower(targetYaw);
+                fl.setPower(rx * speed);
+                fr.setPower(-rx * speed);
+                rl.setPower(rx * speed);
+                rr.setPower(-rx * speed);
+                Thread.sleep(5); // 풀스핀 방지 — I2C/시스템 숨 쉴 틈
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // STOP 요청 → 플래그 복원 후 즉시 탈출
+        }
+        fl.setPower(0);
+        fr.setPower(0);
+        rl.setPower(0);
+        rr.setPower(0);
+        return Math.abs(getYaw() - targetYaw) <= tolerance;
     }
 
     public void controlWithPad(GamepadPurpose p){
@@ -109,11 +160,12 @@ public class IMU_Driving {
         double mX = 0;
         double mY = 0;
 
-        //rotate: right stick
-        if(p == GamepadPurpose.ROTATE || p == GamepadPurpose.WHOLE && !(Math.abs(gamepad1.right_stick_x) < 0.1 && Math.abs(gamepad1.right_stick_y) < 0.1)){
+        //rotate: right stick — 괄호 명시: ROTATE 모드는 deadzone 무시, WHOLE은 스틱 입력 시에만
+        if(p == GamepadPurpose.ROTATE
+                || (p == GamepadPurpose.WHOLE && !(Math.abs(gamepad1.right_stick_x) < 0.1 && Math.abs(gamepad1.right_stick_y) < 0.1))){
             double x = gamepad1.right_stick_x;
             double y = -gamepad1.right_stick_y;
-            telemetry.addData("move: ", x + "/" + y );
+            telemetry.addData("aim", "%.2f/%.2f", x, y);
             double targetYaw = -Math.toDegrees(Math.atan2(x,y)); // 90도 회전 (위 -> 0)
             if(Math.abs(targetYaw - yaw) > 1.5){
                 rx = getRotatePower(targetYaw);
@@ -133,7 +185,7 @@ public class IMU_Driving {
         }
         //init
         if((p == GamepadPurpose.MOVE || p == GamepadPurpose.WHOLE) && gamepad1.leftStickButtonWasPressed()){
-            imu.resetYaw();
+            resetImuYaw();
         }
 
         // 속도 조절 g1.rb -- / lb -
@@ -146,16 +198,25 @@ public class IMU_Driving {
 
 
 
-        double deno = JavaUtil.maxOfList(
-                JavaUtil.createListWith(
-                        Math.abs(mX),
-                        Math.abs(mY),
-                        Math.abs(rx),
-                        1));
-        fl.setPower((mX + mY +rx) / deno * speed);
-        fr.setPower((-mX + mY -rx) / deno * speed);
-        rl.setPower((-mX + mY +rx) / deno * speed);
-        rr.setPower((mX + mY -rx) / deno * speed);
+        // 바퀴 파워를 먼저 계산한 뒤 실제 최댓값으로 정규화 — 성분 기반 deno는 대각선 입력 시
+        // 일부 바퀴만 ±1 클램프돼서 주행 방향이 휘어지는 버그였음
+        double flP =  mX + mY + rx;
+        double frP = -mX + mY - rx;
+        double rlP = -mX + mY + rx;
+        double rrP =  mX + mY - rx;
+
+        double maxAbs = Math.max(Math.abs(flP), Math.max(Math.abs(frP), Math.max(Math.abs(rlP), Math.abs(rrP))));
+        if (maxAbs > 1) {
+            flP /= maxAbs;
+            frP /= maxAbs;
+            rlP /= maxAbs;
+            rrP /= maxAbs;
+        }
+
+        fl.setPower(flP * speed);
+        fr.setPower(frP * speed);
+        rl.setPower(rlP * speed);
+        rr.setPower(rrP * speed);
     }
 
     /**
@@ -174,7 +235,7 @@ public class IMU_Driving {
 
         if(Math.abs(a) < 0.00000025) a = 0;
         if(Math.abs(b) < 0.00000025) b = 0;
-        telemetry.addData("move: ", a + "/" + b );
+        telemetry.addData("move", "%.3f/%.3f", a, b);
         return new Vector2d(a, b);
     }
 
